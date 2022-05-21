@@ -21,8 +21,8 @@ date = datetime.date(2022,4,1)
 singleZoneID = "3"
 
 #------------------ getHistoryRange() - Use these variables if you want to download all logfiles from all zones for a certain timeframe
-start_date = datetime.date(2022,5,1) # First date to check for logs
-end_date = datetime.date(2022,5,2) # Last date to check for logs
+start_date = datetime.date(2021,10,1) # First date to check for logs
+end_date = datetime.date(2022,4,30) # Last date to check for logs
 zoneCount = 5 # How many zones (Rooms) do you have? 
 
 #------------------------------------------
@@ -107,6 +107,39 @@ def getHistory():
     createLog(path, logname)
     
 
+def getHistoryRangeWithoutAnalysis():
+    zone_list = list(range(1, zoneCount+1)) # creates a list of zones based on the zoneCount variable
+
+    r=requests.get("https://my.tado.com/api/v2/homes/" + homeId + "/zones", headers={"Authorization" : "Bearer" + bearerToken})
+    response = json.loads(r.text)
+    
+    date_list = [] # creates a list of dates based on the start_date and end_date variable
+    diff = end_date - start_date
+    for i in range(diff.days + 1):
+        date = (start_date + datetime.timedelta(i))
+        date_list.append(date)
+    
+    for zoneID in zone_list:
+        zoneID = str(zoneID)
+
+        for date in date_list:
+            date = str(date)
+
+            r=requests.get("https://my.tado.com/api/v2/homes/" + homeId + "/zones/" + zoneID + "/dayReport?date=" + date, headers={"Authorization" : "Bearer" + bearerToken})
+            response = json.loads(r.text)
+                        
+            logname = date + "_" + "zone_" + zoneID
+            
+            path = (date + "/")
+            if not os.path.exists(path):
+                os.makedirs(path)
+            
+            f=open(date + "/" + logname + ".json", "w")
+            f.write(json.dumps(response, indent=1))
+            f.close
+                      
+            print("Downloaded: " + logname)
+            sleep(random.randint(0, 3)) #you can disable this if you want faster downloads - just keep in mind that you might overload the TADO API and lock youself out.
 
 #------------------------------------------
 
@@ -123,5 +156,6 @@ homeId=str(json_data['homeId'])
 
 #----- Change this to what exactly you want to do
 #getHistory()
-getHistoryRange()
+#getHistoryRange()
 #getZones()
+getHistoryRangeWithoutAnalysis()
